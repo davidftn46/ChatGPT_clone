@@ -6,6 +6,12 @@ let userText = null;
 
 const API_KEY = "";
 
+const loadDataFromLocalstorage = () => {
+    chatContainer.innerHTML = localStorage.getItem("all-chats");
+}
+
+loadDataFromLocalstorage();
+
 const createElement = (html, className) => {
     const chatDiv = document.createElement("div");
     chatDiv.classList.add("chat", className);
@@ -13,8 +19,9 @@ const createElement = (html, className) => {
     return chatDiv;
 }
 
-const getChatResponse = async () =>{
+const getChatResponse = async (incomingChatDiv) =>{
     const API_URL = "https://api.cohere.ai/v1/generate";
+    const pElement = document.createElement("p");
 
     const requestOptions = {
         method: "POST",
@@ -35,12 +42,23 @@ const getChatResponse = async () =>{
     try {
 
         const response = await (await fetch(API_URL, requestOptions)).json();
-        console.log(response);
+        pElement.textContent = response.generations[0].text.trim();
     
     } catch(error) {
 
         console.log(error);
     }
+
+    incomingChatDiv.querySelector(".typing-animation").remove();
+    incomingChatDiv.querySelector(".chat-details").appendChild(pElement);
+    localStorage.setItem("all-chats", chatContainer.innerHTML);
+}
+
+const copyResponse = (copyBtn) => {
+    const responseTextElement = copyBtn.parentElement.querySelector("p");
+    navigator.clipboard.writeText(responseTextElement.textContent);
+    copyBtn.textContent = "done";
+    setTimeout(() => copyBtn.textContent = "content_copy", 1000);
 }
 
 const showTypingAnimation = () => {
@@ -53,26 +71,29 @@ const showTypingAnimation = () => {
                             <div class="typing-dot" style="--delay: 0.4s"></div>
                         </div>
                     </div>
-                    <span class="material-symbols-rounded">content_copy</span>
+                    <span onclick="copyResponse(this)" class="material-symbols-rounded">content_copy</span>
                   </div>`;
 
     const incomingChatDiv = createElement(html, "incoming");
     chatContainer.appendChild(incomingChatDiv);
 
-    getChatResponse();
+    getChatResponse(incomingChatDiv);
 
 }
 
 const handleOutgoingChat = () => {
     userText = chatInput.value.trim();
+    if(!userText) return;
+
     const html = `<div class="chat-content">
                     <div class="chat-details">
                         <img src="Images/user.jpg" alt="user-image">
-                        <p>${userText}</p>
+                        <p></p>
                     </div>
                   </div>`;
     
     const outgoingChatDiv = createElement(html, "outgoing");
+    outgoingChatDiv.querySelector("p").textContent = userText;
     chatContainer.appendChild(outgoingChatDiv);
     setTimeout(showTypingAnimation, 500);
 }
